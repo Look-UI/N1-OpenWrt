@@ -6,7 +6,7 @@ name: Build OpenWRT-LEAN for N1
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
-  FEEDS_CONF: feeds_config/lede.feeds.conf.default
+  FEEDS_CONF: N1-LEDE/lede.feeds.conf.default
   CONFIG_FILE: N1-LEDE/.config
   DIY_SH: N1-LEDE/diy.sh
   FILES: N1-LEDE/files
