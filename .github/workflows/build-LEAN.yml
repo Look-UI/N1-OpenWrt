@@ -1,6 +1,6 @@
 name: Build OpenWRT-LEAN for N1
 
-于:
+on:
   workflow_dispatch:
 
 env:
