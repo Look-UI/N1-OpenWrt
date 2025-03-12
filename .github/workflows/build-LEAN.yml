@@ -98,13 +98,13 @@ jobs:
         sudo -E apt clean
         sudo timedatectl set-timezone "$TZ"
         sudo chown $USER:$GROUPS $GITHUB_WORKSPACE
-
-    - name: 克隆源代码
-      working-directory: ./
+   
+    
+    - name: 克隆源码
+      working-directory: /workdir
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        cd openwrt
-        sed -i 's|https://github.com/coolsnowwolf/luci.git;openwrt-23.05|https://github.com/coolsnowwolf/luci|g' feeds.conf.default
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: 缓存编译结果
       uses: stupidloud/cachewrtbuild@main
@@ -132,12 +132,15 @@ jobs:
       # if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
 
     - name: 下载软件包
-      working-directory: ./openwrt
+      id: package
       run: |
+        cd openwrt
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
+        echo "硬盘详情："
+        df -Th
 
     - name: 编译固件
       id: compile
