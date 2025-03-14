@@ -100,35 +100,33 @@ jobs:
         sudo timedatectl set-timezone "$TZ"
         sudo chown $USER:$GROUPS $GITHUB_WORKSPACE
 
-    - name: 克隆源代码
-      working-directory: ./
+    - name: 克隆源码
+      working-directory: /workdir
       run: |
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        cd openwrt
-        if [ -f "$FEEDS_CONF" ]; then
-          cp $FEEDS_CONF feeds.conf.default
-        fi
-        sed -i 's|https://github.com/coolsnowwolf/luci.git;openwrt-23.05|https://github.com/coolsnowwolf/luci|g' feeds.conf.default
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: 缓存wrt构建
       uses: stupidloud/cachewrtbuild@main
       with:
         ccache: 'true'
         mixkey: amlogic-${{ env.REPO_BRANCH }}
-        prefix: ${{ github.workspace }}/openwrt
+        prefix: /workdir/openwrt
         
     - name: 更新并安装feeds
-      working-directory: ./openwrt
+      working-directory: /workdir/openwrt
       run: |
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
     - name: 加载自定义配置
       run: |
-        [ -e $FILES ] && mv $FILES openwrt/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        [ -e $FILES ] && cp -r $FILES /workdir/openwrt/files
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE /workdir/openwrt/.config
         chmod +x $DIY_SH
-        cd openwrt
+        cd /workdir/openwrt
         $GITHUB_WORKSPACE/$DIY_SH
 
     # - name: SSH连接到Actions
@@ -136,7 +134,7 @@ jobs:
       # if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
 
     - name: 下载软件包
-      working-directory: ./openwrt
+      working-directory: /workdir/openwrt
       run: |
         make defconfig
         make download -j8
@@ -145,8 +143,8 @@ jobs:
 
     - name: 编译固件
       run: |
-        chmod -R 755 openwrt
-        cd openwrt
+        chmod -R 755 /workdir/openwrt
+        cd /workdir/openwrt
         echo -e "$(nproc)线程编译"
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "compile_status=success" >> $GITHUB_ENV
@@ -155,7 +153,7 @@ jobs:
       if: ${{ env.compile_status }} == 'success' && !cancelled()
       uses: unifreq/openwrt_packit@master
       env:
-        OPENWRT_ARMVIRT: openwrt/bin/targets/*/*/openwrt-amlogic-mesongx-phicomm_n1-rootfs.tar.gz
+        OPENWRT_ARMVIRT: /workdir/openwrt/bin/targets/*/*/openwrt-amlogic-mesongx-phicomm_n1-rootfs.tar.gz
         KERNEL_VERSION_NAME: 5.15.176
         KERNEL_AUTO_LATEST: false
         PACKAGE_SOC: s905d
